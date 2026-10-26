@@ -389,7 +389,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
     <select id="docStatus" aria-label="Status"><option value="utkast">Utkast</option><option value="klar">Klar</option><option value="fakturerad">Fakturerad</option></select>
     <button class="btn sm" id="docEdit">Redigera</button>
     <button class="btn sm" id="docCopy">Kopiera fakturaunderlag</button>
-    <button class="btn sm" id="docPrint" hidden>Skriv ut / PDF</button>
+    <button class="btn sm dark" id="docPrint" hidden>PDF / Skriv ut</button>
     <button class="btn sm danger" id="docDel">Ta bort</button>
     <button class="btn sm primary" id="docClose">Stäng</button>
   </div>
@@ -411,7 +411,10 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 </div>
 
 <div class="toast" id="toast" hidden></div>
+<div id="pdfStage" style="position:fixed;left:0;top:0;width:794px;z-index:-1;pointer-events:none" aria-hidden="true"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (function(){
 const $=id=>document.getElementById(id);
@@ -632,7 +635,7 @@ function docHTML(n){
   <div class="foot">${foot}</div>`;
 }
 function openDoc(id,obj){
-  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;
+  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;docNow=n;
   $("paper").innerHTML=docHTML(n);
   ["docStatus","docEdit","docDel"].forEach(k=>$(k).hidden=!viewing);
   $("docStatus").value=n.status;$("delConfirm").hidden=true;
@@ -653,7 +656,39 @@ $("docCopy").onclick=()=>{
 function fallbackCopy(t){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast("Kopierat")}catch(e){toast("Markera texten och kopiera manuellt")}a.remove()}
 // Utskrift fungerar när appen körs på egen webbadress (t.ex. GitHub Pages)
 try{if(window.self===window.top)$("docPrint").hidden=false}catch(e){}
-$("docPrint").onclick=()=>window.print();
+let docNow=null;
+async function makePDF(n){
+  const stage=$("pdfStage");
+  stage.innerHTML=`<div class="paper" style="max-width:none;width:794px;min-height:1123px;border-radius:0;padding:48px 52px">${docHTML(n)}</div>`;
+  try{await document.fonts.ready}catch(e){}
+  const imgs=[...stage.querySelectorAll("img")];
+  await Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
+  const canvas=await html2canvas(stage.firstElementChild,{scale:2,backgroundColor:"#ffffff",useCORS:true,logging:false,scrollX:0,scrollY:0,windowWidth:794});
+  stage.innerHTML="";
+  const {jsPDF}=window.jspdf,pdf=new jsPDF({unit:"mm",format:"a4"});
+  const pw=210,ph=297,pxPerMm=canvas.width/pw,pageH=Math.floor(ph*pxPerMm);
+  for(let y=0,first=true;y<canvas.height;y+=pageH,first=false){
+    const h=Math.min(pageH,canvas.height-y);if(!first&&h<40)break;
+    const c=document.createElement("canvas");c.width=canvas.width;c.height=h;
+    c.getContext("2d").drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);
+    if(!first)pdf.addPage();
+    pdf.addImage(c.toDataURL("image/jpeg",0.92),"JPEG",0,0,pw,h/pxPerMm);
+  }
+  return pdf;
+}
+$("docPrint").onclick=async()=>{
+  const n=docNow;if(!n)return;
+  if(!window.jspdf||!window.html2canvas){window.print();return}
+  const b=$("docPrint"),t=b.textContent;b.disabled=true;b.textContent="Skapar PDF…";
+  try{
+    const pdf=await makePDF(n),name=`foljesedel-${String(n.no||"utkast").replace(/[^\w-]/g,"")}.pdf`;
+    const file=new File([pdf.output("blob")],name,{type:"application/pdf"});
+    let shared=false;
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){toast("Välj Skriv ut eller Spara i Filer");await navigator.share({files:[file],title:name});shared=true}}catch(e){if(e.name==="AbortError")shared=true}
+    if(!shared){const u=URL.createObjectURL(file),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000)}
+  }catch(e){toast("Kunde inte skapa PDF");console.error(e)}
+  finally{b.disabled=false;b.textContent=t}
+};
 
 /* archive */
 function renderArkiv(){
