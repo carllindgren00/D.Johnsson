@@ -188,6 +188,8 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 .seg{display:inline-flex;background:var(--surface);border-radius:9px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;font:600 .86rem var(--body);color:var(--muted);padding:7px 11px;border-radius:7px;cursor:pointer;min-height:32px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.seg.form{display:flex;background:var(--field);border:1px solid var(--line)}
+.seg.form button{flex:1;min-height:40px;font-size:.92rem}
 .btn.toggle[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .inv{display:grid;gap:12px}
 .invlist{display:grid;gap:0;max-height:none}
@@ -253,13 +255,16 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
         <div class="hint">Tryck × för att ta bort en typ, eller skriv en ny.</div>
         <div class="row"><input id="job_new" placeholder="Ny uppdragstyp" style="flex:1;min-width:150px"><button class="btn dark sm" id="job_add">Lägg till</button></div>
       </div>
+      <label class="f">Egen text om uppdraget<input id="f_jobtext" placeholder="Valfritt, t.ex. Flytt av container åt kommunen"></label>
+      <div class="f" style="display:grid;gap:5px;font-size:.8rem;font-weight:600;color:var(--muted)">Debiteras som
+        <div class="seg form" id="billSeg"><button data-b="crane">Kranbil</button><button data-b="trailer">Med släp</button><button data-b="driver">Bara förare</button></div>
+      </div>
       <div class="g2">
         <label class="f">Hämtplats<input id="f_from" placeholder="Adress"></label>
         <label class="f">Lyftplats / leverans<input id="f_to" placeholder="Adress"></label>
-        <label class="f">Kranbil<select id="f_crane"></select></label>
+        <label class="f" id="craneField">Kranbil<select id="f_crane"></select></label>
         <label class="f">Förare<input id="f_driver"></label>
       </div>
-      <div class="chips"><button class="chip" id="f_trailer" aria-pressed="false">Med släp</button></div>
     </section>
 
     <section class="card">
@@ -400,6 +405,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
       <div class="grid">
         <label class="f">Timpris kranbil<input type="number" id="p_hour"></label>
         <label class="f">Timpris med släp<input type="number" id="p_hourT"></label>
+        <label class="f">Timpris bara förare<input type="number" id="p_hourD"></label>
         <label class="f">Framkörning, fast<input type="number" id="p_start"></label>
         <label class="f">Kr per km<input type="number" id="p_km" step="0.5"></label>
         <label class="f">OB-tillägg, %<input type="number" id="p_ob"></label>
@@ -483,7 +489,7 @@ const DEF={
   company:{name:"D. Johanssons Transport AB",orgnr:"",addr:"",phone:"",email:"",bg:"",fskatt:true},
   wm:{text:"D. Johanssons Transport AB",color:"#3d82c4"},
   logo:"",prefix:"",start:1001,
-  prices:{hour:1350,hourT:1550,start:650,km:18,ob:50,min:2,round:0.5,vat:25,waitFree:false},
+  prices:{hour:1350,hourT:1550,hourD:550,start:650,km:18,ob:50,min:2,round:0.5,vat:25,waitFree:false},
   cranes:[{name:"Scania R · kran",reg:""}],
   jobs:["Lyft","Lossning bygg","Takstolar","Spabad / pool","Container","Maskinflytt","Båtlyft","Glas & fönster","Transport"],
   tools:[{name:"Pallgafflar",price:300,unit:"st"},{name:"Lyftok",price:350,unit:"st"},{name:"Stroppar / kättingar",price:200,unit:"st"},{name:"Stenklo",price:600,unit:"st"},{name:"Vakuumlyft",price:1200,unit:"st"},{name:"Jibb",price:400,unit:"st"},{name:"Personkorg",price:900,unit:"st"}],
@@ -526,18 +532,21 @@ const mins=t=>{if(!t)return null;const[a,b]=t.split(":").map(Number);return a*60
 const numOf=no=>{const m=String(no||"").match(/(\d+)\s*$/);return m?parseInt(m[1],10):NaN};
 function nextNo(){const ns=notes.filter(n=>!n.example).map(n=>numOf(n.no)).filter(Number.isFinite);return Math.max(+S.start||1,ns.length?Math.max(...ns)+1:1)}
 
-function blank(){return{id:"n"+Date.now(),no:null,noAuto:true,dateAuto:true,status:"utkast",date:today(),cust:"",orgnr:"",contact:"",phone:"",ref:"",from:"",to:"",jobs:[],crane:0,driver:"",trailer:false,t:{start:"",arrive:"",done:"",back:"",brk:0,wait:0},km:0,ob:false,lift:{weight:"",reach:"",height:"",count:"",goods:""},tools:[],extras:[],notes:"",ok:true,signer:"",sig:"",kv:S.kvDefault!==false}}
+const billOf=n=>n.bill||(n.trailer?"trailer":"crane");
+const jobsStr=n=>[...(n.jobs||[]),n.jobText].filter(Boolean).join(", ");
+function blank(){return{id:"n"+Date.now(),no:null,noAuto:true,dateAuto:true,status:"utkast",date:today(),cust:"",orgnr:"",contact:"",phone:"",ref:"",from:"",to:"",jobs:[],jobText:"",bill:"crane",crane:0,driver:"",trailer:false,t:{start:"",arrive:"",done:"",back:"",brk:0,wait:0},km:0,ob:false,lift:{weight:"",reach:"",height:"",count:"",goods:""},tools:[],extras:[],notes:"",ok:true,signer:"",sig:"",kv:S.kvDefault!==false}}
 
 function calc(n,P=S.prices){
   const s=mins(n.t.start),b=mins(n.t.back);
   let raw=0;if(s!=null&&b!=null){raw=b-s;if(raw<0)raw+=1440}
   raw-=(+n.t.brk||0);if(P.waitFree)raw-=(+n.t.wait||0);raw=Math.max(0,raw);
   let h=raw/60;if(h>0){h=Math.ceil(h/P.round-1e-9)*P.round;h=Math.max(h,+P.min||0)}
-  const rate=n.trailer?P.hourT:P.hour,lines=[];
-  if(h>0)lines.push({g:"Kranbil",txt:"Kranbil"+(n.trailer?" med släp":"")+" inkl. förare",qty:h,unit:"tim",price:rate});
-  if(h>0&&n.ob&&P.ob)lines.push({g:"Kranbil",txt:"OB-tillägg "+P.ob+" %",qty:h,unit:"tim",price:rate*P.ob/100});
-  if(P.start&&(h>0||n.km>0))lines.push({g:"Kranbil",txt:"Framkörning",qty:1,unit:"st",price:+P.start});
-  if(+n.km>0)lines.push({g:"Kranbil",txt:"Körsträcka",qty:+n.km,unit:"km",price:+P.km});
+  const mode=billOf(n),drv=mode==="driver",G=drv?"Arbete":"Kranbil";
+  const rate=drv?(+P.hourD||0):mode==="trailer"?P.hourT:P.hour,lines=[];
+  if(h>0)lines.push({g:G,txt:drv?"Förare, arbetstid (utan bil)":"Kranbil"+(mode==="trailer"?" med släp":"")+" inkl. förare",qty:h,unit:"tim",price:rate});
+  if(h>0&&n.ob&&P.ob)lines.push({g:G,txt:"OB-tillägg "+P.ob+" %",qty:h,unit:"tim",price:rate*P.ob/100});
+  if(!drv&&P.start&&(h>0||n.km>0))lines.push({g:G,txt:"Framkörning",qty:1,unit:"st",price:+P.start});
+  if(+n.km>0)lines.push({g:G,txt:"Körsträcka",qty:+n.km,unit:"km",price:+P.km});
   (n.tools||[]).forEach(e=>{if(+e.qty&&e.name)lines.push({g:"Redskap",txt:e.name,qty:+e.qty,unit:e.unit,price:+e.price})});
   (n.extras||[]).forEach(e=>{if(+e.qty&&e.name)lines.push({g:"Tillägg",txt:e.name,qty:+e.qty,unit:e.unit,price:+e.price})});
   const net=lines.reduce((a,l)=>a+l.qty*l.price,0),vat=net*(+P.vat||0)/100;
@@ -554,7 +563,7 @@ function showPaper(html){$("paper").innerHTML=html;$("docOverlay").hidden=false;
 function applyBrand(){$("brand").innerHTML=logoHTML();$("noPrefix").textContent=S.prefix;$("noPrefix").hidden=!S.prefix}
 
 /* ---- form ---- */
-const F={cust:"f_cust",orgnr:"f_orgnr",contact:"f_contact",phone:"f_phone",ref:"f_ref",from:"f_from",to:"f_to",driver:"f_driver",notes:"f_notes",signer:"k_name"};
+const F={jobText:"f_jobtext",cust:"f_cust",orgnr:"f_orgnr",contact:"f_contact",phone:"f_phone",ref:"f_ref",from:"f_from",to:"f_to",driver:"f_driver",notes:"f_notes",signer:"k_name"};
 function fillForm(n){
   cur=JSON.parse(JSON.stringify(n));
   if(!cur.tools)cur.tools=[];if(!cur.extras)cur.extras=[];
@@ -563,7 +572,7 @@ function fillForm(n){
   $("f_date").value=cur.date;
   $("f_no").value=cur.noAuto||!cur.no?nextNo():numOf(cur.no);
   $("f_crane").value=cur.crane;
-  ["trailer","ob"].forEach(k=>$("f_"+k).setAttribute("aria-pressed",!!cur[k]));
+  $("f_ob").setAttribute("aria-pressed",!!cur.ob);cur.bill=billOf(cur);setBill();
   ["start","arrive","done","back"].forEach(k=>$("t_"+k).value=cur.t[k]||"");
   $("t_break").value=cur.t.brk;$("t_wait").value=cur.t.wait;$("f_km").value=cur.km;
   ["weight","reach","height","count","goods"].forEach(k=>$("l_"+k).value=(cur.lift||{})[k]??"");
@@ -596,7 +605,9 @@ function update(skipDraft){
 $("v-ny").addEventListener("input",e=>{if(e.target.closest(".editbox"))return;update()});
 $("f_date").addEventListener("input",()=>{cur.dateAuto=false});
 $("f_no").addEventListener("input",()=>{cur.noAuto=false;saveDraft()});
-["trailer","ob"].forEach(k=>$("f_"+k).addEventListener("click",e=>{cur[k]=!cur[k];e.currentTarget.setAttribute("aria-pressed",cur[k]);update()}));
+$("f_ob").addEventListener("click",e=>{cur.ob=!cur.ob;e.currentTarget.setAttribute("aria-pressed",cur.ob);update()});
+function setBill(){$("billSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.b===cur.bill));$("craneField").hidden=cur.bill==="driver";cur.trailer=cur.bill==="trailer"}
+$("billSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;cur.bill=b.dataset.b;setBill();update()};
 document.querySelectorAll("[data-now]").forEach(b=>b.onclick=()=>{const d=new Date();$(b.dataset.now).value=pad(d.getHours())+":"+pad(d.getMinutes());update()});
 /* new day: refresh date and number on an untouched new note */
 function refreshAuto(){if(!cur||editingId)return;if(cur.dateAuto&&$("f_date").value!==today()){$("f_date").value=today();cur.date=today()}if(cur.noAuto)$("f_no").value=nextNo()}
@@ -678,7 +689,7 @@ $("btnClear").onclick=()=>{editingId=null;store.del("kb_draft");fillForm(blank()
 
 /* document */
 function docHTML(n){
-  const c=calc(n),C=S.company,cr=S.cranes[n.crane]||{name:"",reg:""},L=n.lift||{};
+  const c=calc(n),C=S.company,cr=billOf(n)==="driver"?{name:"",reg:""}:(S.cranes[n.crane]||{name:"",reg:""}),L=n.lift||{};
   const v=a=>a!==""&&a!=null?esc(a):"–";
   let g="",rows="";
   c.lines.forEach(l=>{if(l.g!==g){g=l.g;rows+=`<tr class="grp"><td colspan="5">${g}</td></tr>`}rows+=`<tr><td>${esc(l.txt)}</td><td class="n">${kr2(l.qty)}</td><td>${esc(l.unit)}</td><td class="n">${kr2(l.price)}</td><td class="n">${kr2(l.qty*l.price)}</td></tr>`});
@@ -688,7 +699,7 @@ function docHTML(n){
   <div><h1>Följesedel</h1><div class="kv"><span>Nummer</span><b>${esc(n.no||"")}</b><span>Datum</span><b>${esc(n.date)}</b>${cr.name?`<span>Fordon</span><b>${esc(cr.name)}</b>`:""}${cr.reg?`<span>Reg.nr</span><b>${esc(cr.reg)}</b>`:""}</div></div></div>
   <div class="cols">
    <div><h3>Kund</h3>${esc(n.cust)||"–"}${n.orgnr?"<br>Org.nr "+esc(n.orgnr):""}${n.contact?"<br>"+esc(n.contact):""}${n.phone?"<br>Tel "+esc(n.phone):""}${n.ref?"<br>Er ref: "+esc(n.ref):""}</div>
-   <div><h3>Uppdrag</h3>${n.jobs.length?esc(n.jobs.join(", ")):"–"}${n.from?"<br>Från: "+esc(n.from):""}${n.to?"<br>Till: "+esc(n.to):""}${n.driver?"<br>Förare: "+esc(n.driver):""}</div>
+   <div><h3>Uppdrag</h3>${esc(jobsStr(n))||"–"}${billOf(n)==="driver"?"<br>Avser endast förare, utan bil":""}${n.from?"<br>Från: "+esc(n.from):""}${n.to?"<br>Till: "+esc(n.to):""}${n.driver?"<br>Förare: "+esc(n.driver):""}</div>
    <div><h3>Tider</h3><span class="mono">Från depå ${v(n.t.start)}<br>Ankomst ${v(n.t.arrive)} · Klart ${v(n.t.done)}<br>Åter depå ${v(n.t.back)}</span>${n.t.brk?"<br>Rast "+n.t.brk+" min":""}${n.t.wait?"<br>Väntetid "+n.t.wait+" min":""}${n.km?"<br>Körsträcka "+n.km+" km":""}</div>
    ${L.goods||L.weight?`<div><h3>Lyft</h3>${esc(L.goods)||""}<br><span class="mono">${L.weight?"Vikt "+esc(L.weight)+" kg":""}${L.count?" · "+esc(L.count)+" lyft":""}${L.reach?"<br>Räckvidd "+esc(L.reach)+" m":""}${L.height?" · Höjd "+esc(L.height)+" m":""}</span></div>`:""}
   </div>
@@ -756,17 +767,17 @@ $("docPrint").onclick=async()=>{
 /* invoice basis: summary of several delivery notes for one customer */
 function footHTML(){const C=S.company;return [C.name,C.orgnr&&"Org.nr "+C.orgnr,C.addr,C.phone,C.email,C.bg&&"Bg "+C.bg,C.fskatt&&"Godkänd för F-skatt"].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}
 function specOf(list){const m=new Map();list.forEach(n=>calc(n).lines.forEach(l=>{const k=l.txt+"|"+l.unit+"|"+l.price;const e=m.get(k)||{txt:l.txt,unit:l.unit,price:l.price,qty:0,g:l.g};e.qty+=l.qty;m.set(k,e)}));
-  const order={Kranbil:0,Redskap:1,"Tillägg":2};return[...m.values()].sort((a,b)=>(order[a.g]??3)-(order[b.g]??3))}
+  const order={Kranbil:0,Arbete:0,Redskap:1,"Tillägg":2};return[...m.values()].sort((a,b)=>(order[a.g]??3)-(order[b.g]??3))}
 function summaryHTML(list,mode){
   const s=[...list].sort((a,b)=>a.date.localeCompare(b.date)||numOf(a.no)-numOf(b.no));
   const f=s[0]||{},net=s.reduce((a,n)=>a+calc(n).net,0),vat=net*(+S.prices.vat||0)/100;
   const refs=[...new Set(s.map(n=>n.ref).filter(Boolean))];
   const per=s.length?(s[0].date===s[s.length-1].date?s[0].date:s[0].date+" – "+s[s.length-1].date):"";
   const tot=`<tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att fakturera</td><td class="n">${kr2(net+vat)} kr</td></tr></tbody>`;
-  const info=n=>[n.date,n.jobs.join(", "),n.to,n.ref&&"Ref: "+n.ref].filter(Boolean).map(esc).join(" · ");
+  const info=n=>[n.date,jobsStr(n),billOf(n)==="driver"&&"Endast förare",n.to,n.ref&&"Ref: "+n.ref].filter(Boolean).map(esc).join(" · ");
   let table;
   if(mode==="sum"){
-    const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td>${esc(n.date)}</td><td>${esc(n.jobs.join(", "))}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
+    const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td>${esc(n.date)}</td><td>${esc(jobsStr(n))}${billOf(n)==="driver"?"<br><span class='sub'>Endast förare</span>":""}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
     table=`<table><thead><tr><th>Följesedel</th><th>Datum</th><th>Uppdrag</th><th class="n">Timmar</th><th class="n">Exkl. moms</th></tr></thead><tbody>${rows}</tbody>${tot}</table>`;
   }else{
     const groups=s.map(n=>{const c=calc(n);
@@ -788,7 +799,7 @@ function invCandidates(){
 const invOff=new Set(),invOn=new Set();
 function renderInv(){
   const list=invCandidates();
-  $("invList").innerHTML=list.map(n=>{const on=n.status==="fakturerad"?invOn.has(n.id):!invOff.has(n.id);return `<label class="invrow"><input type="checkbox" data-inv="${n.id}" ${on?"checked":""}><span><span class="mono">Nr ${esc(n.no)}</span> · ${esc(n.date)}<br><span class="hint">${esc(n.jobs.join(", "))}${n.status==="fakturerad"?" · redan fakturerad":""}</span></span><span class="mono">${kr(calc(n).net)}</span></label>`}).join("")||`<p class="hint">Inga klara följesedlar för kunden i perioden.</p>`;
+  $("invList").innerHTML=list.map(n=>{const on=n.status==="fakturerad"?invOn.has(n.id):!invOff.has(n.id);return `<label class="invrow"><input type="checkbox" data-inv="${n.id}" ${on?"checked":""}><span><span class="mono">Nr ${esc(n.no)}</span> · ${esc(n.date)}<br><span class="hint">${esc(jobsStr(n))}${n.status==="fakturerad"?" · redan fakturerad":""}</span></span><span class="mono">${kr(calc(n).net)}</span></label>`}).join("")||`<p class="hint">Inga klara följesedlar för kunden i perioden.</p>`;
   readInv();
 }
 function readInv(){
@@ -823,9 +834,9 @@ $("docBill").onclick=()=>{invSel.forEach(n=>n.status="fakturerad");store.set("kb
 /* archive */
 function renderArkiv(){
   const q=$("search").value.toLowerCase(),f=$("filter").value;
-  const list=notes.filter(n=>(!f||n.status===f)&&(!q||[n.no,n.cust,n.to,n.from,n.ref,n.notes,n.jobs.join(" ")].join(" ").toLowerCase().includes(q)));
+  const list=notes.filter(n=>(!f||n.status===f)&&(!q||[n.no,n.cust,n.to,n.from,n.ref,n.notes,jobsStr(n)].join(" ").toLowerCase().includes(q)));
   $("arkivSum").textContent=kr(notes.filter(n=>n.status==="klar").reduce((a,n)=>a+calc(n).net,0))+" exkl. moms";
-  $("arkivList").innerHTML=list.map(n=>`<button class="item" data-id="${n.id}"><div style="min-width:0"><span class="no">Nr ${esc(n.no)} · ${esc(n.date)}</span><br><b>${esc(n.cust)}</b><br><span class="hint">${esc(n.jobs.join(", "))}${n.to?" · "+esc(n.to):""}</span></div><div style="display:grid;gap:6px;align-content:start"><span class="amt">${kr(calc(n).total)}</span><span class="pill ${n.status}">${n.status}</span>${n.example?'<span class="pill ex">Exempel</span>':""}</div></button>`).join("")||`<p class="hint">Inga följesedlar hittades.</p>`;
+  $("arkivList").innerHTML=list.map(n=>`<button class="item" data-id="${n.id}"><div style="min-width:0"><span class="no">Nr ${esc(n.no)} · ${esc(n.date)}</span><br><b>${esc(n.cust)}</b><br><span class="hint">${esc(jobsStr(n))}${n.to?" · "+esc(n.to):""}</span></div><div style="display:grid;gap:6px;align-content:start"><span class="amt">${kr(calc(n).total)}</span><span class="pill ${n.status}">${n.status}</span>${n.example?'<span class="pill ex">Exempel</span>':""}</div></button>`).join("")||`<p class="hint">Inga följesedlar hittades.</p>`;
   $("exampleRow").hidden=!notes.some(n=>n.example);
   $("custList").innerHTML=[...new Set(notes.map(n=>n.cust))].map(c=>`<option value="${esc(c)}">`).join("");
 }
@@ -839,7 +850,7 @@ function renderLogoPrev(){$("logoPrev").innerHTML=S.logo?`<img src="${S.logo}" a
 function renderSettings(){
   const C=S.company;$("c_name").value=C.name;$("c_orgnr").value=C.orgnr;$("c_addr").value=C.addr;$("c_phone").value=C.phone;$("c_email").value=C.email;$("c_bg").value=C.bg;$("c_fskatt").checked=C.fskatt;
   $("wm_text").value=S.wm.text;$("wm_color").value=S.wm.color;
-  const P=S.prices;$("p_hour").value=P.hour;$("p_hourT").value=P.hourT;$("p_start").value=P.start;$("p_km").value=P.km;$("p_ob").value=P.ob;$("p_min").value=P.min;$("p_round").value=P.round;$("p_vat").value=P.vat;$("p_waitFree").checked=P.waitFree;
+  const P=S.prices;$("p_hour").value=P.hour;$("p_hourT").value=P.hourT;$("p_hourD").value=P.hourD;$("p_start").value=P.start;$("p_km").value=P.km;$("p_ob").value=P.ob;$("p_min").value=P.min;$("p_round").value=P.round;$("p_vat").value=P.vat;$("p_waitFree").checked=P.waitFree;
   $("n_prefix").value=S.prefix;$("n_start").value=S.start;$("kv_def").checked=S.kvDefault!==false;
   $("pin_on").checked=S.pin.on;$("pin_code").value=S.pin.code;$("pin_backup").value=S.pin.backup;
   renderLogoPrev();renderCranes();
@@ -859,7 +870,7 @@ $("btnSaveSettings").onclick=()=>{
   if($("pin_on").checked&&!/^\d{4,6}$/.test(code)){toast("PIN måste vara 4–6 siffror");return}
   S.company={name:$("c_name").value.trim(),orgnr:$("c_orgnr").value.trim(),addr:$("c_addr").value.trim(),phone:$("c_phone").value.trim(),email:$("c_email").value.trim(),bg:$("c_bg").value.trim(),fskatt:$("c_fskatt").checked};
   S.wm={text:$("wm_text").value.trim(),color:$("wm_color").value};
-  S.prices={hour:+$("p_hour").value||0,hourT:+$("p_hourT").value||0,start:+$("p_start").value||0,km:+$("p_km").value||0,ob:+$("p_ob").value||0,min:+$("p_min").value||0,round:+$("p_round").value||0.5,vat:+$("p_vat").value||0,waitFree:$("p_waitFree").checked};
+  S.prices={hour:+$("p_hour").value||0,hourT:+$("p_hourT").value||0,hourD:+$("p_hourD").value||0,start:+$("p_start").value||0,km:+$("p_km").value||0,ob:+$("p_ob").value||0,min:+$("p_min").value||0,round:+$("p_round").value||0.5,vat:+$("p_vat").value||0,waitFree:$("p_waitFree").checked};
   S.prefix=$("n_prefix").value.trim();S.start=Math.max(1,+$("n_start").value||1);
   S.pin={on:$("pin_on").checked,code,backup:$("pin_backup").value.trim()};
   S.kvDefault=$("kv_def").checked;if(!editingId&&cur&&!cur.sig&&cur.noAuto){cur.kv=S.kvDefault;setKv(cur.kv);saveDraft()}
