@@ -152,25 +152,34 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 .overlay .bar select{width:auto;min-height:38px;padding:6px 10px;background:var(--surface)}
 .dialog{max-width:380px;margin:14vh auto 0;background:var(--surface);border-radius:14px;padding:22px;display:grid;gap:12px}
 
-.paper{max-width:800px;margin:0 auto;background:var(--paper);color:var(--paper-ink);padding:28px;border-radius:4px;font-size:13px;line-height:1.45}
-.paper .ph{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end;border-bottom:2px solid #151a20;padding-bottom:12px}
-.paper .ph img{max-height:60px;max-width:240px;display:block;margin-bottom:6px}
-.paper .ph .wm{font-size:30px;margin-bottom:6px;white-space:normal}
-.paper h1{font-family:var(--display);font-size:24px;letter-spacing:.06em;text-transform:uppercase;margin:0;line-height:1}
-.paper .meta{font-family:var(--mono);font-size:12px;text-align:right}
-.paper .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:14px}
-.paper h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;font-size:12.5px;margin:0 0 3px;color:#56636f}
-.paper .done{margin-top:14px;background:#f4f6f8;border-radius:4px;padding:10px 12px}
-.paper table{width:100%;border-collapse:collapse;margin-top:16px;font-variant-numeric:tabular-nums}
-.paper th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#56636f;border-bottom:1.5px solid #151a20;padding:5px 4px}
-.paper td{padding:6px 4px;border-bottom:1px solid #e3e6e9}
-.paper td.n,.paper th.n{text-align:right;font-family:var(--mono)}
-.paper tr.grp td{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;font-size:11.5px;color:#56636f;padding-top:10px;border-bottom:0}
-.paper .tot td{border:0}
-.paper .tot .big td{font-size:15px;font-weight:600;border-top:2px solid #151a20}
-.paper .sigbox{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:22px}
-.paper .sigline{border-top:1px solid #151a20;padding-top:4px;font-size:11px;min-height:20px}
-.paper .sigline img{max-height:70px;display:block;margin-bottom:2px}
+.sheet{margin:0 auto;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,.35);background:#fff}
+.paper{width:794px;min-height:1123px;max-width:none;margin:0;background:#fff;color:#151a20;padding:56px 60px;border-radius:0;font-family:var(--body);font-size:12.5px;line-height:1.5;display:flex;flex-direction:column;transform-origin:0 0;color-scheme:light}
+.paper .ph{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:28px;align-items:start;padding-bottom:18px;border-bottom:1.5px solid #151a20}
+.paper .ph img{max-height:64px;max-width:300px;display:block}
+.paper .ph .wm{font-size:32px;white-space:normal;display:block;line-height:1.15}
+.paper .co{font-size:11px;color:#56636f;margin-top:8px;line-height:1.5}
+.paper h1{font-family:var(--display);font-size:30px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 12px;text-align:right;line-height:1}
+.paper .kv{display:grid;grid-template-columns:auto auto;gap:3px 16px;justify-content:end;font-size:12px}
+.paper .kv span{color:#56636f}
+.paper .kv b{text-align:right;font-weight:600}
+.paper .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:22px}
+.paper h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:12px;margin:0 0 4px;color:#56636f}
+.paper .mono{font-family:inherit;font-variant-numeric:tabular-nums}
+.paper .done{margin-top:20px;background:#f3f5f7;padding:12px 14px}
+.paper table{width:100%;border-collapse:collapse;margin-top:22px;font-variant-numeric:tabular-nums}
+.paper th{text-align:left;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#56636f;border-bottom:1.5px solid #151a20;padding:6px 8px 6px 0}
+.paper td{padding:7px 8px 7px 0;border-bottom:1px solid #e3e6e9;vertical-align:top}
+.paper td.n,.paper th.n{text-align:right;white-space:nowrap}
+.paper th:last-child,.paper td:last-child{padding-right:0}
+.paper tr.grp td{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:11.5px;color:#56636f;padding-top:12px;border-bottom:0}
+.paper .tot td{border:0;padding-top:5px;padding-bottom:3px}
+.paper .tot .big td{font-size:15px;font-weight:700;border-top:1.5px solid #151a20;padding-top:9px}
+.paper .sub{color:#56636f}
+.paper .sigbox{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;align-items:end}
+.paper .sigline{border-top:1px solid #151a20;padding-top:5px;font-size:11px;min-height:20px}
+.paper .sigimg{max-height:70px;max-width:100%;display:block;margin-bottom:4px}
+.paper .foot{margin-top:auto;padding-top:28px}
+.paper .foot div{border-top:1px solid #e3e6e9;padding-top:9px;font-size:10.5px;color:#56636f;display:flex;flex-wrap:wrap;gap:4px 18px}
 .inv{display:grid;gap:12px}
 .invlist{display:grid;gap:0;max-height:none}
 .invrow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:.93rem}
@@ -179,10 +188,10 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 .invrow .mono{text-align:right}
 .invtot{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border-top:2px solid var(--ink);padding-top:10px;font-weight:600}
 .invtot b{font-family:var(--mono);font-size:1.15rem}
-.paper .sumspec td.n{white-space:nowrap}
-.paper .foot{margin-top:18px;border-top:1px solid #e3e6e9;padding-top:8px;font-size:11px;color:#56636f;display:flex;flex-wrap:wrap;gap:4px 16px}
 .tablewrap{overflow-x:auto}
 @media print{
+  .paper{transform:none!important}
+  .sheet{width:auto!important;height:auto!important;box-shadow:none!important}
   @page{margin:12mm}
   body{background:#fff}
   body::before,header.top,.totalbar,main,.overlay .bar,.toast{display:none!important}
@@ -425,7 +434,6 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
   <div class="bar">
     <select id="docStatus" aria-label="Status"><option value="utkast">Utkast</option><option value="klar">Klar</option><option value="fakturerad">Fakturerad</option></select>
     <button class="btn sm" id="docEdit">Redigera</button>
-    <button class="btn sm" id="docCopy">Kopiera fakturaunderlag</button>
     <button class="btn sm" id="docBill" hidden>Markera som fakturerade</button>
     <button class="btn sm dark" id="docPrint" hidden>PDF / Skriv ut</button>
     <button class="btn sm danger" id="docDel">Ta bort</button>
@@ -436,7 +444,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
     <button class="btn sm danger" id="delYes">Ja, ta bort</button>
     <button class="btn sm" id="delNo">Avbryt</button>
   </div>
-  <div class="paper" id="paper"></div>
+  <div class="sheet" id="sheet"><div class="paper" id="paper"></div></div>
 </div>
 
 <div class="overlay" id="lock" hidden>
@@ -529,6 +537,10 @@ function calc(n,P=S.prices){
 /* ---- brand ---- */
 function wmHTML(){return `<span class="wm" style="color:${esc(S.wm.color)}">${esc(S.wm.text||S.company.name)}</span>`}
 function logoHTML(){return S.logo?`<img src="${S.logo}" alt="${esc(S.company.name)}">`:wmHTML()}
+function coHTML(){const C=S.company,l=[C.addr,[C.phone,C.email].filter(Boolean).join(" · ")].filter(Boolean);return l.length?`<div class="co">${l.map(esc).join("<br>")}</div>`:""}
+function fitPaper(){const ov=$("docOverlay");if(ov.hidden)return;const p=$("paper"),sh=$("sheet");const avail=Math.min(ov.clientWidth-24,900);const sc=Math.min(1,avail/794);p.style.transform=sc<1?`scale(${sc})`:"";sh.style.width=(794*sc)+"px";sh.style.height=(p.offsetHeight*sc)+"px"}
+addEventListener("resize",()=>fitPaper());
+function showPaper(html){$("paper").innerHTML=html;$("docOverlay").hidden=false;$("docOverlay").scrollTop=0;fitPaper();try{document.fonts.ready.then(fitPaper)}catch(e){}[...$("paper").querySelectorAll("img")].forEach(i=>{if(!i.complete)i.onload=fitPaper})}
 function applyBrand(){$("brand").innerHTML=logoHTML();$("noPrefix").textContent=S.prefix;$("noPrefix").hidden=!S.prefix}
 
 /* ---- form ---- */
@@ -662,8 +674,8 @@ function docHTML(n){
   c.lines.forEach(l=>{if(l.g!==g){g=l.g;rows+=`<tr class="grp"><td colspan="5">${g}</td></tr>`}rows+=`<tr><td>${esc(l.txt)}</td><td class="n">${kr2(l.qty)}</td><td>${esc(l.unit)}</td><td class="n">${kr2(l.price)}</td><td class="n">${kr2(l.qty*l.price)}</td></tr>`});
   if(!rows)rows=`<tr><td colspan="5">Inga debiterbara rader ännu.</td></tr>`;
   const foot=[C.name,C.orgnr&&"Org.nr "+C.orgnr,C.addr,C.phone,C.email,C.bg&&"Bg "+C.bg,C.fskatt&&"Godkänd för F-skatt"].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("");
-  return `<div class="ph"><div>${logoHTML()}<h1>Följesedel</h1></div>
-  <div class="meta">Nr <b style="font-size:17px">${esc(n.no||"")}</b><br>${esc(n.date)}<br>${esc(cr.name)}${cr.reg?"<br>"+esc(cr.reg):""}</div></div>
+  return `<div class="ph"><div>${logoHTML()}${coHTML()}</div>
+  <div><h1>Följesedel</h1><div class="kv"><span>Nummer</span><b>${esc(n.no||"")}</b><span>Datum</span><b>${esc(n.date)}</b>${cr.name?`<span>Fordon</span><b>${esc(cr.name)}</b>`:""}${cr.reg?`<span>Reg.nr</span><b>${esc(cr.reg)}</b>`:""}</div></div></div>
   <div class="cols">
    <div><h3>Kund</h3>${esc(n.cust)||"–"}${n.orgnr?"<br>Org.nr "+esc(n.orgnr):""}${n.contact?"<br>"+esc(n.contact):""}${n.phone?"<br>Tel "+esc(n.phone):""}${n.ref?"<br>Er ref: "+esc(n.ref):""}</div>
    <div><h3>Uppdrag</h3>${n.jobs.length?esc(n.jobs.join(", ")):"–"}${n.from?"<br>Från: "+esc(n.from):""}${n.to?"<br>Till: "+esc(n.to):""}${n.driver?"<br>Förare: "+esc(n.driver):""}</div>
@@ -674,15 +686,14 @@ function docHTML(n){
   <div class="tablewrap"><table><thead><tr><th>Beskrivning</th><th class="n">Antal</th><th>Enh</th><th class="n">À-pris</th><th class="n">Belopp</th></tr></thead><tbody>${rows}</tbody>
   <tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(c.net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(c.vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att betala</td><td class="n">${kr2(c.total)} kr</td></tr></tbody></table></div>
   ${n.kv!==false?`<div class="sigbox"><div><div class="sigline">${n.ok?"Mottaget utan anmärkning.":"Mottaget <b>med anmärkning</b>, se utfört arbete."}</div></div>
-  <div><div class="sigline">${n.sig?`<img src="${n.sig}" alt="Kundens signatur">`:'<div style="height:50px"></div>'}Kundens signatur${n.signer?": "+esc(n.signer):""}</div></div></div>`:""}
-  <div class="foot">${foot}</div>`;
+  <div>${n.sig?`<img class="sigimg" src="${n.sig}" alt="Kundens signatur">`:'<div style="height:60px"></div>'}<div class="sigline">Kundens signatur${n.signer?": "+esc(n.signer):""}</div></div></div>`:""}
+  <div class="foot"><div>${foot}</div></div>`;
 }
 function openDoc(id,obj){
-  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;docNow=n;docMode="note";$("docBill").hidden=true;$("docCopy").textContent="Kopiera fakturaunderlag";
-  $("paper").innerHTML=docHTML(n);
+  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;docNow=n;docMode="note";$("docBill").hidden=true;
   ["docStatus","docEdit","docDel"].forEach(k=>$(k).hidden=!viewing);
   $("docStatus").value=n.status;$("delConfirm").hidden=true;
-  $("docOverlay").hidden=false;$("docOverlay").scrollTop=0;
+  showPaper(docHTML(n));
 }
 $("docClose").onclick=()=>{$("docOverlay").hidden=true;renderArkiv()};
 $("docStatus").onchange=e=>{const n=notes.find(x=>x.id===viewing);n.status=e.target.value;store.set("kb_notes",notes);toast("Status: "+e.target.selectedOptions[0].text)};
@@ -690,13 +701,6 @@ $("docEdit").onclick=()=>{const n=notes.find(x=>x.id===viewing);editingId=n.id;$
 $("docDel").onclick=()=>$("delConfirm").hidden=false;
 $("delNo").onclick=()=>$("delConfirm").hidden=true;
 $("delYes").onclick=()=>{notes=notes.filter(x=>x.id!==viewing);store.set("kb_notes",notes);$("docOverlay").hidden=true;toast("Borttagen");renderArkiv();refreshAuto()};
-$("docCopy").onclick=()=>{
-  if(docMode==="summary"){const t=summaryText(invSel);try{navigator.clipboard.writeText(t).then(()=>toast("Kopierat – klistra in i Fortnox"),()=>fallbackCopy(t))}catch(e){fallbackCopy(t)}return}
-  const n=viewing?notes.find(x=>x.id===viewing):cur,c=calc(n);
-  const txt=[`Fakturaunderlag följesedel ${n.no||""} – ${n.date}`,`Kund: ${n.cust}${n.orgnr?" ("+n.orgnr+")":""}`,n.ref?`Er referens: ${n.ref}`:"",`Uppdrag: ${n.jobs.join(", ")}${n.to?" – "+n.to:""}`,n.notes?`Utfört: ${n.notes.replace(/\n/g," ")}`:"","",
-    ...c.lines.map(l=>`${l.txt}\t${kr2(l.qty)} ${l.unit}\tà ${kr2(l.price)}\t= ${kr2(l.qty*l.price)}`),"",`Summa exkl. moms: ${kr2(c.net)}`,`Moms: ${kr2(c.vat)}`,`Totalt: ${kr2(c.total)} kr`].filter((x,i,a)=>x!==""||(a[i-1]!=="")).join("\n");
-  try{navigator.clipboard.writeText(txt).then(()=>toast("Kopierat – klistra in i Fortnox"),()=>fallbackCopy(txt))}catch(e){fallbackCopy(txt)}
-};
 function fallbackCopy(t){const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");toast("Kopierat")}catch(e){toast("Markera texten och kopiera manuellt")}a.remove()}
 // Utskrift fungerar när appen körs på egen webbadress (t.ex. GitHub Pages)
 try{if(window.self===window.top)$("docPrint").hidden=false}catch(e){}
@@ -705,7 +709,7 @@ async function makePDF(pages){
   const stage=$("pdfStage"),{jsPDF}=window.jspdf,pdf=new jsPDF({unit:"mm",format:"a4"});
   let firstPage=true;
   for(const html of pages){
-    stage.innerHTML=`<div class="paper" style="max-width:none;width:794px;min-height:1123px;border-radius:0;padding:48px 52px">${html}</div>`;
+    stage.innerHTML=`<div class="paper">${html}</div>`;
     try{await document.fonts.ready}catch(e){}
     const imgs=[...stage.querySelectorAll("img")];
     await Promise.all(imgs.map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r})));
@@ -748,16 +752,16 @@ function summaryHTML(list){
   const f=s[0]||{},net=s.reduce((a,n)=>a+calc(n).net,0),vat=net*(+S.prices.vat||0)/100;
   const refs=[...new Set(s.map(n=>n.ref).filter(Boolean))];
   const per=s.length?(s[0].date===s[s.length-1].date?s[0].date:s[0].date+" – "+s[s.length-1].date):"";
-  const rows=s.map(n=>{const c=calc(n);return `<tr><td class="mono">${esc(n.no)}</td><td class="mono">${esc(n.date)}</td><td>${esc(n.jobs.join(", "))}${n.to?"<br><span style='color:#56636f'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span style='color:#56636f'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
+  const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td class="n" style="text-align:left">${esc(n.date)}</td><td>${esc(n.jobs.join(", "))}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
   const spec=specOf(s).map(l=>`<tr><td>${esc(l.txt)}</td><td class="n">${kr2(l.qty)}</td><td>${esc(l.unit)}</td><td class="n">${kr2(l.price)}</td><td class="n">${kr2(l.qty*l.price)}</td></tr>`).join("");
-  return `<div class="ph"><div>${logoHTML()}<h1>Fakturaunderlag</h1></div>
-  <div class="meta">Skapat ${today()}<br>Period ${esc(per)}<br>${s.length} följesedl${s.length===1?"el":"ar"}</div></div>
+  return `<div class="ph"><div>${logoHTML()}${coHTML()}</div>
+  <div><h1>Fakturaunderlag</h1><div class="kv"><span>Datum</span><b>${today()}</b><span>Period</span><b>${esc(per)}</b><span>Följesedlar</span><b>${s.length} st</b></div></div></div>
   <div class="cols"><div><h3>Kund</h3>${esc(f.cust)||"–"}${f.orgnr?"<br>Org.nr "+esc(f.orgnr):""}${f.contact?"<br>"+esc(f.contact):""}${f.phone?"<br>Tel "+esc(f.phone):""}</div>
   ${refs.length?`<div><h3>Er referens</h3>${refs.map(esc).join("<br>")}</div>`:""}</div>
   <div class="tablewrap"><table><thead><tr><th>Följesedel</th><th>Datum</th><th>Uppdrag</th><th class="n">Timmar</th><th class="n">Exkl. moms</th></tr></thead><tbody>${rows}</tbody></table></div>
   <div class="tablewrap"><table class="sumspec"><thead><tr><th>Specifikation</th><th class="n">Antal</th><th>Enh</th><th class="n">À-pris</th><th class="n">Belopp</th></tr></thead><tbody>${spec}</tbody>
   <tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att fakturera</td><td class="n">${kr2(net+vat)} kr</td></tr></tbody></table></div>
-  <div class="foot">${footHTML()}</div>`;
+  <div class="foot"><div>${footHTML()}</div></div>`;
 }
 function summaryText(list){
   const s=[...list].sort((a,b)=>a.date.localeCompare(b.date)),f=s[0]||{},net=s.reduce((a,n)=>a+calc(n).net,0),vat=net*(+S.prices.vat||0)/100;
@@ -778,7 +782,7 @@ function renderInv(){
 function readInv(){
   const ids=new Set([...$("invList").querySelectorAll("input:checked")].map(i=>i.dataset.inv));
   invSel=notes.filter(n=>ids.has(n.id));
-  $("invCount").textContent=invSel.length+" följesedl"+(invSel.length===1?"el":"ar")+" valda";
+  $("invCount").textContent=invSel.length+(invSel.length===1?" följesedel vald":" följesedlar valda");
   $("invSum").textContent=kr(invSel.reduce((a,n)=>a+calc(n).net,0))+" exkl. moms";
   $("invShow").disabled=!invSel.length;
 }
@@ -795,10 +799,9 @@ $("invList").addEventListener("change",e=>{const id=e.target.dataset.inv;if(!id)
 $("invShow").onclick=()=>{
   if(!invSel.length)return;
   docMode="summary";viewing=null;docNow=null;
-  $("paper").innerHTML=summaryHTML(invSel);
   ["docStatus","docEdit","docDel"].forEach(k=>$(k).hidden=true);
-  $("docBill").hidden=false;$("docCopy").textContent="Kopiera underlag";$("delConfirm").hidden=true;
-  $("docOverlay").hidden=false;$("docOverlay").scrollTop=0;
+  $("docBill").hidden=false;$("delConfirm").hidden=true;
+  showPaper(summaryHTML(invSel));
 };
 $("docBill").onclick=()=>{invSel.forEach(n=>n.status="fakturerad");store.set("kb_notes",notes);toast(invSel.length+" markerade som fakturerade");$("docBill").hidden=true;renderInv()};
 
