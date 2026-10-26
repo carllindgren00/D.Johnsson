@@ -37,12 +37,13 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .wrap{max-width:680px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
-.top .wrap{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
-.brand img{height:34px;width:auto;max-width:180px;object-fit:contain}
+.top .wrap{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding-block:8px 10px}
+.brand{display:flex;align-items:center;justify-content:center;min-width:0;min-height:40px}
+.brand img{height:40px;width:auto;max-width:100%;object-fit:contain}
 .wm{font-family:var(--script);font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.brand .wm{font-size:1.45rem}
+.brand .wm{font-size:clamp(1.45rem,6.4vw,1.9rem);white-space:normal;text-align:center;overflow:visible}
 nav.tabs{display:flex;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:3px}
+nav.tabs button{flex:1}
 nav.tabs button{background:transparent;color:var(--muted);border:0;font:600 .88rem var(--body);padding:7px 12px;border-radius:7px;cursor:pointer}
 nav.tabs button[aria-current="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 
