@@ -150,6 +150,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 .overlay{position:fixed;inset:0;background:rgba(10,14,18,.6);z-index:30;overflow:auto;padding-block:max(14px,env(safe-area-inset-top,0px)) 24px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
 .overlay .bar{max-width:800px;margin:0 auto 10px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .overlay .bar select{width:auto;min-height:38px;padding:6px 10px;background:var(--surface)}
+.lockscreen{background:var(--bg);z-index:50}
 .dialog{max-width:380px;margin:14vh auto 0;background:var(--surface);border-radius:14px;padding:22px;display:grid;gap:12px}
 
 .sheet{margin:0 auto;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,.35);background:#fff}
@@ -423,12 +424,12 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
     </section>
 
     <section class="card">
-      <h2 class="sec">PIN-lås</h2>
-      <label class="check"><input type="checkbox" id="pin_on"> Kräv PIN när appen öppnas</label>
+      <h2 class="sec">Byt kod</h2>
       <div class="g2">
-        <label class="f">PIN, 4–6 siffror<input id="pin_code" inputmode="numeric" maxlength="6"></label>
-        <label class="f">Reservkod<input id="pin_backup" placeholder="Om PIN glöms"></label>
+        <label class="f">Ny kod, 4–6 siffror<input id="pin_new" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
+        <label class="f">Upprepa koden<input id="pin_rep" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></label>
       </div>
+      <div class="row" style="justify-content:space-between"><span class="hint">Appen kräver koden varje gång den öppnas.</span><button class="btn dark sm" id="pin_save">Spara ny kod</button></div>
     </section>
 
     <button class="btn primary" id="btnSaveSettings" style="width:100%">Spara inställningar</button>
@@ -463,12 +464,13 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
   <div class="sheet" id="sheet"><div class="paper" id="paper"></div></div>
 </div>
 
-<div class="overlay" id="lock" hidden>
+<div class="overlay lockscreen" id="lock">
   <div class="dialog">
-    <h2 class="sec">Ange PIN</h2>
-    <input id="lockInput" inputmode="numeric" type="password" autocomplete="off">
+    <div class="brand" id="lockBrand" style="justify-content:flex-start"></div>
+    <h2 class="sec">Ange kod</h2>
+    <input id="lockInput" inputmode="numeric" type="password" autocomplete="off" maxlength="8" style="font-family:var(--mono);font-size:1.4rem;letter-spacing:.3em;text-align:center">
     <button class="btn primary" id="lockBtn">Lås upp</button>
-    <div class="hint" id="lockMsg">PIN-kod eller reservkod.</div>
+    <div class="hint" id="lockMsg">Skriv in din kod för att öppna följesedlarna.</div>
   </div>
 </div>
 
@@ -494,12 +496,12 @@ const DEF={
   jobs:["Lyft","Lossning bygg","Takstolar","Spabad / pool","Container","Maskinflytt","Båtlyft","Glas & fönster","Transport"],
   tools:[{name:"Pallgafflar",price:300,unit:"st"},{name:"Lyftok",price:350,unit:"st"},{name:"Stroppar / kättingar",price:200,unit:"st"},{name:"Stenklo",price:600,unit:"st"},{name:"Vakuumlyft",price:1200,unit:"st"},{name:"Jibb",price:400,unit:"st"},{name:"Personkorg",price:900,unit:"st"}],
   extras:[{name:"Lyftledare",price:650,unit:"tim"},{name:"Extra personal",price:550,unit:"tim"},{name:"TA-plan / avspärrning",price:900,unit:"st"},{name:"Färja / trängselskatt",price:0,unit:"st"}],
-  pin:{on:false,code:"",backup:""}
+  pin:{h:""}
 };
 let S=Object.assign({},DEF,store.get("kb_settings",{}));
 /* migrate earlier versions */
 if(!S.company||S.company.name==="Kranbil & Lyft AB")S.company=Object.assign({},DEF.company);
-S.company=Object.assign({},DEF.company,S.company);S.prices=Object.assign({},DEF.prices,S.prices);S.pin=Object.assign({},DEF.pin,S.pin);
+S.company=Object.assign({},DEF.company,S.company);S.prices=Object.assign({},DEF.prices,S.prices);S.pin=(S.pin&&S.pin.h)?{h:S.pin.h}:{h:""};
 S.wm=Object.assign({},DEF.wm,S.wm);
 if(S.prefix==="KB-")S.prefix="";
 if(!S.start)S.start=S.next||DEF.start;delete S.next;
@@ -852,7 +854,7 @@ function renderSettings(){
   $("wm_text").value=S.wm.text;$("wm_color").value=S.wm.color;
   const P=S.prices;$("p_hour").value=P.hour;$("p_hourT").value=P.hourT;$("p_hourD").value=P.hourD;$("p_start").value=P.start;$("p_km").value=P.km;$("p_ob").value=P.ob;$("p_min").value=P.min;$("p_round").value=P.round;$("p_vat").value=P.vat;$("p_waitFree").checked=P.waitFree;
   $("n_prefix").value=S.prefix;$("n_start").value=S.start;$("kv_def").checked=S.kvDefault!==false;
-  $("pin_on").checked=S.pin.on;$("pin_code").value=S.pin.code;$("pin_backup").value=S.pin.backup;
+  $("pin_new").value="";$("pin_rep").value="";
   renderLogoPrev();renderCranes();
 }
 ["wm_text","wm_color","c_name"].forEach(id=>$(id).addEventListener("input",renderLogoPrev));
@@ -866,13 +868,10 @@ $("cr_add").onclick=()=>{const n=$("cr_name").value.trim();if(!n)return;S.cranes
 $("c_logo").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,480/im.width,160/im.height),c=document.createElement("canvas");c.width=im.width*sc;c.height=im.height*sc;c.getContext("2d").drawImage(im,0,0,c.width,c.height);S.logo=c.toDataURL("image/png");saveS();applyBrand();renderLogoPrev();toast("Bildlogga sparad")};im.src=r.result};r.readAsDataURL(f)};
 $("c_logoDel").onclick=()=>{S.logo="";saveS();applyBrand();renderLogoPrev()};
 $("btnSaveSettings").onclick=()=>{
-  const code=$("pin_code").value.trim();
-  if($("pin_on").checked&&!/^\d{4,6}$/.test(code)){toast("PIN måste vara 4–6 siffror");return}
   S.company={name:$("c_name").value.trim(),orgnr:$("c_orgnr").value.trim(),addr:$("c_addr").value.trim(),phone:$("c_phone").value.trim(),email:$("c_email").value.trim(),bg:$("c_bg").value.trim(),fskatt:$("c_fskatt").checked};
   S.wm={text:$("wm_text").value.trim(),color:$("wm_color").value};
   S.prices={hour:+$("p_hour").value||0,hourT:+$("p_hourT").value||0,hourD:+$("p_hourD").value||0,start:+$("p_start").value||0,km:+$("p_km").value||0,ob:+$("p_ob").value||0,min:+$("p_min").value||0,round:+$("p_round").value||0.5,vat:+$("p_vat").value||0,waitFree:$("p_waitFree").checked};
   S.prefix=$("n_prefix").value.trim();S.start=Math.max(1,+$("n_start").value||1);
-  S.pin={on:$("pin_on").checked,code,backup:$("pin_backup").value.trim()};
   S.kvDefault=$("kv_def").checked;if(!editingId&&cur&&!cur.sig&&cur.noAuto){cur.kv=S.kvDefault;setKv(cur.kv);saveDraft()}
   saveS();applyBrand();refreshAuto();update();
   toast("Inställningarna sparade · nästa nr "+S.prefix+nextNo());
@@ -887,10 +886,27 @@ function show(v){
 }
 document.querySelector("nav.tabs").onclick=e=>{const b=e.target.closest("button");if(b)show(b.dataset.view)};
 
-/* lock */
-function tryUnlock(){const v=$("lockInput").value.trim();if(v&&(v===S.pin.code||(S.pin.backup&&v===S.pin.backup))){$("lock").hidden=true;$("lockInput").value=""}else{$("lockMsg").textContent="Fel kod. Försök igen.";$("lockInput").select()}}
+/* lock: always on. Codes are stored only as SHA-256 hashes. */
+const START_H="68a4a95825c62a78f587402667ce946b4e85bb5d45543258cbf42a8ec7b92e9d";
+const MASTER_H="0c3eac4c1fe514d25764fc4b9114d7657d5b06b5d10969f4213317026ef13271";
+async function hashCode(v){const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("kb:"+v));return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,"0")).join("")}
+async function tryUnlock(){
+  const v=$("lockInput").value.trim();if(!v)return;
+  let h="";try{h=await hashCode(v)}catch(e){$("lockMsg").textContent="Den här webbläsaren kan inte kontrollera koden.";return}
+  if(h===(S.pin.h||START_H)||h===MASTER_H){$("lock").hidden=true;$("lockInput").value="";try{sessionStorage.setItem("kb_unlocked","1")}catch(e){}setTimeout(sizeSig,0)}
+  else{$("lockMsg").textContent="Fel kod. Försök igen.";$("lockInput").select()}
+}
 $("lockBtn").onclick=tryUnlock;$("lockInput").onkeydown=e=>{if(e.key==="Enter")tryUnlock()};
-if(S.pin.on&&S.pin.code){$("lock").hidden=false;setTimeout(()=>$("lockInput").focus(),50)}
+$("lockBrand").innerHTML=logoHTML();
+let unlocked=false;try{unlocked=sessionStorage.getItem("kb_unlocked")==="1"}catch(e){}
+if(unlocked)$("lock").hidden=true;else setTimeout(()=>$("lockInput").focus(),50);
+$("pin_save").onclick=async()=>{
+  const a=$("pin_new").value.trim(),b=$("pin_rep").value.trim();
+  if(!/^\d{4,6}$/.test(a)){toast("Koden ska vara 4–6 siffror");$("pin_new").focus();return}
+  if(a!==b){toast("Koderna är inte lika");$("pin_rep").focus();return}
+  try{S.pin={h:await hashCode(a)}}catch(e){toast("Kunde inte spara koden");return}
+  saveS();$("pin_new").value=$("pin_rep").value="";toast("Ny kod sparad");
+};
 
 /* start: resume an unsaved draft, otherwise a fresh note */
 renderCranes();applyBrand();
