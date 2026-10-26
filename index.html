@@ -180,6 +180,15 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
 .paper .sigimg{max-height:70px;max-width:100%;display:block;margin-bottom:4px}
 .paper .foot{margin-top:auto;padding-top:28px}
 .paper .foot div{border-top:1px solid #e3e6e9;padding-top:9px;font-size:10.5px;color:#56636f;display:flex;flex-wrap:wrap;gap:4px 18px}
+.paper .spec tr.oh td{padding-top:16px;border-bottom:1px solid #c9d0d6;font-size:12.5px}
+.paper .spec tbody.ord:first-of-type tr.oh td{padding-top:8px}
+.paper .spec .ow{margin-top:2px;font-size:11.5px}
+.paper .spec tr.os td{border-bottom:0;font-weight:600;padding-bottom:4px}
+.paper .spec tbody.tot tr:first-child td{border-top:1.5px solid #151a20;padding-top:10px}
+.seg{display:inline-flex;background:var(--surface);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;font:600 .86rem var(--body);color:var(--muted);padding:7px 11px;border-radius:7px;cursor:pointer;min-height:32px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.btn.toggle[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .inv{display:grid;gap:12px}
 .invlist{display:grid;gap:0;max-height:none}
 .invrow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:.93rem}
@@ -336,7 +345,6 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
       <label class="check"><input type="checkbox" id="invInclBilled"> Visa även redan fakturerade</label>
       <div class="invlist" id="invList"></div>
       <div class="invtot"><span id="invCount">0 följesedlar</span><b id="invSum">0 kr</b></div>
-      <label class="check"><input type="checkbox" id="invAttach" checked> Bifoga följesedlarna i PDF:en</label>
       <button class="btn dark" id="invShow">Visa fakturaunderlag</button>
     </section>
     <div class="row" style="margin-bottom:10px">
@@ -434,6 +442,8 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
   <div class="bar">
     <select id="docStatus" aria-label="Status"><option value="utkast">Utkast</option><option value="klar">Klar</option><option value="fakturerad">Fakturerad</option></select>
     <button class="btn sm" id="docEdit">Redigera</button>
+    <div class="seg" id="sumSeg" hidden><button data-m="spec" aria-pressed="true">Specificerat</button><button data-m="sum" aria-pressed="false">Endast summering</button></div>
+    <button class="btn sm toggle" id="sumAttach" aria-pressed="false" hidden>Bifoga följesedlar</button>
     <button class="btn sm" id="docBill" hidden>Markera som fakturerade</button>
     <button class="btn sm dark" id="docPrint" hidden>PDF / Skriv ut</button>
     <button class="btn sm danger" id="docDel">Ta bort</button>
@@ -690,7 +700,7 @@ function docHTML(n){
   <div class="foot"><div>${foot}</div></div>`;
 }
 function openDoc(id,obj){
-  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;docNow=n;docMode="note";$("docBill").hidden=true;
+  const n=obj||notes.find(x=>x.id===id);if(!n)return;viewing=obj?null:n.id;docNow=n;docMode="note";["docBill","sumSeg","sumAttach"].forEach(k=>$(k).hidden=true);
   ["docStatus","docEdit","docDel"].forEach(k=>$(k).hidden=!viewing);
   $("docStatus").value=n.status;$("delConfirm").hidden=true;
   showPaper(docHTML(n));
@@ -732,7 +742,7 @@ $("docPrint").onclick=async()=>{
   const b=$("docPrint"),t=b.textContent;b.disabled=true;b.textContent="Skapar PDF…";
   try{
     let pages,name;
-    if(docMode==="summary"){pages=[summaryHTML(invSel)];if($("invAttach").checked)invSel.forEach(x=>pages.push(docHTML(x)));name=`fakturaunderlag-${(invSel[0]&&invSel[0].cust||"kund").replace(/[^\wåäöÅÄÖ-]+/g,"-")}-${today()}.pdf`}
+    if(docMode==="summary"){pages=[summaryHTML(invSel,S.sumMode)];if(S.sumAttach)[...invSel].sort((a,b)=>a.date.localeCompare(b.date)||numOf(a.no)-numOf(b.no)).forEach(x=>pages.push(docHTML(x)));name=`fakturaunderlag-${(invSel[0]&&invSel[0].cust||"kund").replace(/[^\wåäöÅÄÖ-]+/g,"-")}-${today()}.pdf`}
     else{pages=[docHTML(n)];name=`foljesedel-${String(n.no||"utkast").replace(/[^\w-]/g,"")}.pdf`}
     const pdf=await makePDF(pages);
     const file=new File([pdf.output("blob")],name,{type:"application/pdf"});
@@ -747,27 +757,29 @@ $("docPrint").onclick=async()=>{
 function footHTML(){const C=S.company;return [C.name,C.orgnr&&"Org.nr "+C.orgnr,C.addr,C.phone,C.email,C.bg&&"Bg "+C.bg,C.fskatt&&"Godkänd för F-skatt"].filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}
 function specOf(list){const m=new Map();list.forEach(n=>calc(n).lines.forEach(l=>{const k=l.txt+"|"+l.unit+"|"+l.price;const e=m.get(k)||{txt:l.txt,unit:l.unit,price:l.price,qty:0,g:l.g};e.qty+=l.qty;m.set(k,e)}));
   const order={Kranbil:0,Redskap:1,"Tillägg":2};return[...m.values()].sort((a,b)=>(order[a.g]??3)-(order[b.g]??3))}
-function summaryHTML(list){
+function summaryHTML(list,mode){
   const s=[...list].sort((a,b)=>a.date.localeCompare(b.date)||numOf(a.no)-numOf(b.no));
   const f=s[0]||{},net=s.reduce((a,n)=>a+calc(n).net,0),vat=net*(+S.prices.vat||0)/100;
   const refs=[...new Set(s.map(n=>n.ref).filter(Boolean))];
   const per=s.length?(s[0].date===s[s.length-1].date?s[0].date:s[0].date+" – "+s[s.length-1].date):"";
-  const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td class="n" style="text-align:left">${esc(n.date)}</td><td>${esc(n.jobs.join(", "))}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
-  const spec=specOf(s).map(l=>`<tr><td>${esc(l.txt)}</td><td class="n">${kr2(l.qty)}</td><td>${esc(l.unit)}</td><td class="n">${kr2(l.price)}</td><td class="n">${kr2(l.qty*l.price)}</td></tr>`).join("");
+  const tot=`<tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att fakturera</td><td class="n">${kr2(net+vat)} kr</td></tr></tbody>`;
+  const info=n=>[n.date,n.jobs.join(", "),n.to,n.ref&&"Ref: "+n.ref].filter(Boolean).map(esc).join(" · ");
+  let table;
+  if(mode==="sum"){
+    const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td>${esc(n.date)}</td><td>${esc(n.jobs.join(", "))}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
+    table=`<table><thead><tr><th>Följesedel</th><th>Datum</th><th>Uppdrag</th><th class="n">Timmar</th><th class="n">Exkl. moms</th></tr></thead><tbody>${rows}</tbody>${tot}</table>`;
+  }else{
+    const groups=s.map(n=>{const c=calc(n);
+      const lines=c.lines.map(l=>`<tr><td>${esc(l.txt)}</td><td class="n">${kr2(l.qty)}</td><td>${esc(l.unit)}</td><td class="n">${kr2(l.price)}</td><td class="n">${kr2(l.qty*l.price)}</td></tr>`).join("")||`<tr><td colspan="5" class="sub">Inga debiterbara rader.</td></tr>`;
+      return `<tbody class="ord"><tr class="oh"><td colspan="5"><b>Följesedel ${esc(n.no)}</b><span class="sub"> · ${info(n)}</span>${n.notes?`<div class="sub ow">${esc(n.notes)}</div>`:""}</td></tr>${lines}<tr class="os"><td colspan="4" class="n">Delsumma följesedel ${esc(n.no)}</td><td class="n">${kr2(c.net)}</td></tr></tbody>`}).join("");
+    table=`<table class="spec"><thead><tr><th>Beskrivning</th><th class="n">Antal</th><th>Enh</th><th class="n">À-pris</th><th class="n">Belopp</th></tr></thead>${groups}${tot}</table>`;
+  }
   return `<div class="ph"><div>${logoHTML()}${coHTML()}</div>
   <div><h1>Fakturaunderlag</h1><div class="kv"><span>Datum</span><b>${today()}</b><span>Period</span><b>${esc(per)}</b><span>Följesedlar</span><b>${s.length} st</b></div></div></div>
   <div class="cols"><div><h3>Kund</h3>${esc(f.cust)||"–"}${f.orgnr?"<br>Org.nr "+esc(f.orgnr):""}${f.contact?"<br>"+esc(f.contact):""}${f.phone?"<br>Tel "+esc(f.phone):""}</div>
   ${refs.length?`<div><h3>Er referens</h3>${refs.map(esc).join("<br>")}</div>`:""}</div>
-  <div class="tablewrap"><table><thead><tr><th>Följesedel</th><th>Datum</th><th>Uppdrag</th><th class="n">Timmar</th><th class="n">Exkl. moms</th></tr></thead><tbody>${rows}</tbody></table></div>
-  <div class="tablewrap"><table class="sumspec"><thead><tr><th>Specifikation</th><th class="n">Antal</th><th>Enh</th><th class="n">À-pris</th><th class="n">Belopp</th></tr></thead><tbody>${spec}</tbody>
-  <tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att fakturera</td><td class="n">${kr2(net+vat)} kr</td></tr></tbody></table></div>
+  <div class="tablewrap">${table}</div>
   <div class="foot"><div>${footHTML()}</div></div>`;
-}
-function summaryText(list){
-  const s=[...list].sort((a,b)=>a.date.localeCompare(b.date)),f=s[0]||{},net=s.reduce((a,n)=>a+calc(n).net,0),vat=net*(+S.prices.vat||0)/100;
-  return [`Fakturaunderlag ${f.cust||""}${f.orgnr?" ("+f.orgnr+")":""}`,`Följesedlar: ${s.map(n=>n.no+" ("+n.date+")").join(", ")}`,"",
-    ...specOf(s).map(l=>`${l.txt}\t${kr2(l.qty)} ${l.unit}\tà ${kr2(l.price)}\t= ${kr2(l.qty*l.price)}`),"",
-    `Summa exkl. moms: ${kr2(net)}`,`Moms: ${kr2(vat)}`,`Totalt: ${kr2(net+vat)} kr`].join("\n");
 }
 function invCandidates(){
   const c=$("invCust").value,fr=$("invFrom").value,to=$("invTo").value,all=$("invInclBilled").checked;
@@ -800,9 +812,12 @@ $("invShow").onclick=()=>{
   if(!invSel.length)return;
   docMode="summary";viewing=null;docNow=null;
   ["docStatus","docEdit","docDel"].forEach(k=>$(k).hidden=true);
-  $("docBill").hidden=false;$("delConfirm").hidden=true;
-  showPaper(summaryHTML(invSel));
+  ["docBill","sumSeg","sumAttach"].forEach(k=>$(k).hidden=false);$("delConfirm").hidden=true;
+  syncSum();showPaper(summaryHTML(invSel,S.sumMode));
 };
+function syncSum(){if(!S.sumMode)S.sumMode="spec";$("sumSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.m===S.sumMode));$("sumAttach").setAttribute("aria-pressed",!!S.sumAttach);$("sumAttach").textContent=S.sumAttach?"Bifogar följesedlar ✓":"Bifoga följesedlar"}
+$("sumSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.sumMode=b.dataset.m;saveS();syncSum();showPaper(summaryHTML(invSel,S.sumMode))};
+$("sumAttach").onclick=()=>{S.sumAttach=!S.sumAttach;saveS();syncSum();toast(S.sumAttach?"Följesedlarna läggs som egna sidor i PDF:en":"PDF:en blir bara fakturaunderlaget")};
 $("docBill").onclick=()=>{invSel.forEach(n=>n.status="fakturerad");store.set("kb_notes",notes);toast(invSel.length+" markerade som fakturerade");$("docBill").hidden=true;renderInv()};
 
 /* archive */
