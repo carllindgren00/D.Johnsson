@@ -117,6 +117,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-vis
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .check{display:flex;gap:10px;align-items:center;font-size:.95rem}
 .check input{width:22px;height:22px;min-height:0;flex:none;accent-color:var(--steel)}
+.switch{display:inline-flex;align-items:center;gap:8px;background:none;border:0;font:600 .88rem var(--body);color:var(--muted);cursor:pointer;padding:4px 0}
+.switch i{width:42px;height:24px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+.switch i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.switch[aria-checked="true"]{color:var(--ink)}
+.switch[aria-checked="true"] i{background:var(--ok)}
+.switch[aria-checked="true"] i::after{left:21px}
 canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var(--muted);border-radius:9px;touch-action:none;display:block}
 .logoprev{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 14px;min-height:60px;display:flex;align-items:center;overflow:hidden}
 .logoprev .wm{font-size:1.9rem}
@@ -284,10 +290,14 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
     </details>
 
     <section class="card">
-      <div class="ch"><h2 class="sec">Kundens kvittens</h2><button class="linkbtn" id="sigClear">Rensa</button></div>
-      <canvas class="sig" id="sig" aria-label="Signaturfält"></canvas>
-      <label class="f">Namnförtydligande<input id="k_name"></label>
-      <label class="check"><input type="checkbox" id="k_ok" checked> Mottaget utan anmärkning</label>
+      <div class="ch"><h2 class="sec">Kundens kvittens</h2><button class="switch" id="kvSwitch" role="switch" aria-checked="true"><span id="kvLbl">Med</span><i></i></button></div>
+      <div id="kvBody" style="display:grid;gap:14px">
+        <canvas class="sig" id="sig" aria-label="Signaturfält"></canvas>
+        <div class="row" style="justify-content:space-between"><span class="hint">Kunden signerar med fingret.</span><button class="linkbtn" id="sigClear">Rensa signatur</button></div>
+        <label class="f">Namnförtydligande<input id="k_name"></label>
+        <label class="check"><input type="checkbox" id="k_ok" checked> Mottaget utan anmärkning</label>
+      </div>
+      <div class="hint" id="kvOff" hidden>Följesedeln skapas utan kvittens och signatur.</div>
     </section>
   </div>
 
@@ -330,6 +340,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
         <label class="f">Bankgiro<input id="c_bg"></label>
       </div>
       <label class="check"><input type="checkbox" id="c_fskatt"> Godkänd för F-skatt</label>
+      <label class="check"><input type="checkbox" id="kv_def"> Kundens kvittens påslagen på nya följesedlar</label>
     </section>
 
     <section class="card">
@@ -470,7 +481,7 @@ const mins=t=>{if(!t)return null;const[a,b]=t.split(":").map(Number);return a*60
 const numOf=no=>{const m=String(no||"").match(/(\d+)\s*$/);return m?parseInt(m[1],10):NaN};
 function nextNo(){const ns=notes.filter(n=>!n.example).map(n=>numOf(n.no)).filter(Number.isFinite);return Math.max(+S.start||1,ns.length?Math.max(...ns)+1:1)}
 
-function blank(){return{id:"n"+Date.now(),no:null,noAuto:true,dateAuto:true,status:"utkast",date:today(),cust:"",orgnr:"",contact:"",phone:"",ref:"",from:"",to:"",jobs:[],crane:0,driver:"",trailer:false,t:{start:"",arrive:"",done:"",back:"",brk:0,wait:0},km:0,ob:false,lift:{weight:"",reach:"",height:"",count:"",goods:""},tools:[],extras:[],notes:"",ok:true,signer:"",sig:""}}
+function blank(){return{id:"n"+Date.now(),no:null,noAuto:true,dateAuto:true,status:"utkast",date:today(),cust:"",orgnr:"",contact:"",phone:"",ref:"",from:"",to:"",jobs:[],crane:0,driver:"",trailer:false,t:{start:"",arrive:"",done:"",back:"",brk:0,wait:0},km:0,ob:false,lift:{weight:"",reach:"",height:"",count:"",goods:""},tools:[],extras:[],notes:"",ok:true,signer:"",sig:"",kv:S.kvDefault!==false}}
 
 function calc(n,P=S.prices){
   const s=mins(n.t.start),b=mins(n.t.back);
@@ -508,6 +519,7 @@ function fillForm(n){
   $("t_break").value=cur.t.brk;$("t_wait").value=cur.t.wait;$("f_km").value=cur.km;
   ["weight","reach","height","count","goods"].forEach(k=>$("l_"+k).value=(cur.lift||{})[k]??"");
   $("k_ok").checked=cur.ok;
+  if(cur.kv===undefined)cur.kv=true;setKv(cur.kv);
   $("liftBox").open=!!(cur.lift&&cur.lift.goods);
   renderJobChips();renderPick("tools");renderPick("extras");loadSig(cur.sig);
   $("noTitle").textContent=editingId?"Redigerar följesedel nr":"Följesedel nr";
@@ -581,6 +593,10 @@ function renderPick(kind){
   part(kind,"nadd").onclick=()=>{const nm=part(kind,"nname"),pr=part(kind,"nprice");const n=nm.value.trim();if(!n){nm.focus();return}S[kind].push({name:n,price:+pr.value||0,unit:part(kind,"nunit").value});saveS();nm.value=pr.value="";renderPick(kind);toast("Lade till "+n)};
 });
 
+/* customer receipt on/off */
+function setKv(on){$("kvSwitch").setAttribute("aria-checked",on);$("kvLbl").textContent=on?"Med":"Utan";$("kvBody").style.display=on?"grid":"none";$("kvOff").hidden=on;if(on)setTimeout(sizeSig,0)}
+$("kvSwitch").onclick=()=>{cur.kv=!cur.kv;setKv(cur.kv);saveDraft()};
+
 /* signature */
 const cv=$("sig"),cx=cv.getContext("2d");let drawing=false;
 function sizeSig(){const r=cv.getBoundingClientRect();if(!r.width)return;cv.width=r.width*2;cv.height=r.height*2;cx.setTransform(2,0,0,2,0,0);cx.lineWidth=2.2;cx.lineCap="round";cx.lineJoin="round";cx.strokeStyle="#151a20";if(cur&&cur.sig)loadSig(cur.sig)}
@@ -603,7 +619,7 @@ $("btnSave").onclick=()=>{
   if(notes.some(n=>n.id!==cur.id&&!n.example&&n.no===no)){toast("Nummer "+no+" finns redan");$("f_no").focus();return}
   cur.no=no;cur.noAuto=false;cur.dateAuto=false;
   ["tools","extras"].forEach(k=>cur[k]=cur[k].filter(x=>x.name));
-  if(cur.status==="utkast"&&cur.sig)cur.status="klar";
+  if(cur.status==="utkast"&&(cur.sig||cur.kv===false))cur.status="klar";
   const i=notes.findIndex(n=>n.id===cur.id);if(i>=0)notes[i]=cur;else notes.unshift(cur);
   store.set("kb_notes",notes);store.del("kb_draft");toast("Sparad som nr "+no);
   const id=cur.id;editingId=null;fillForm(blank());openDoc(id);
@@ -630,8 +646,8 @@ function docHTML(n){
   ${n.notes?`<div class="done"><h3>Utfört arbete</h3>${esc(n.notes).replace(/\n/g,"<br>")}</div>`:""}
   <div class="tablewrap"><table><thead><tr><th>Beskrivning</th><th class="n">Antal</th><th>Enh</th><th class="n">À-pris</th><th class="n">Belopp</th></tr></thead><tbody>${rows}</tbody>
   <tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(c.net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(c.vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att betala</td><td class="n">${kr2(c.total)} kr</td></tr></tbody></table></div>
-  <div class="sigbox"><div><div class="sigline">${n.ok?"Mottaget utan anmärkning.":"Mottaget <b>med anmärkning</b>, se utfört arbete."}</div></div>
-  <div><div class="sigline">${n.sig?`<img src="${n.sig}" alt="Kundens signatur">`:'<div style="height:50px"></div>'}Kundens signatur${n.signer?": "+esc(n.signer):""}</div></div></div>
+  ${n.kv!==false?`<div class="sigbox"><div><div class="sigline">${n.ok?"Mottaget utan anmärkning.":"Mottaget <b>med anmärkning</b>, se utfört arbete."}</div></div>
+  <div><div class="sigline">${n.sig?`<img src="${n.sig}" alt="Kundens signatur">`:'<div style="height:50px"></div>'}Kundens signatur${n.signer?": "+esc(n.signer):""}</div></div></div>`:""}
   <div class="foot">${foot}</div>`;
 }
 function openDoc(id,obj){
@@ -710,7 +726,7 @@ function renderSettings(){
   const C=S.company;$("c_name").value=C.name;$("c_orgnr").value=C.orgnr;$("c_addr").value=C.addr;$("c_phone").value=C.phone;$("c_email").value=C.email;$("c_bg").value=C.bg;$("c_fskatt").checked=C.fskatt;
   $("wm_text").value=S.wm.text;$("wm_color").value=S.wm.color;
   const P=S.prices;$("p_hour").value=P.hour;$("p_hourT").value=P.hourT;$("p_start").value=P.start;$("p_km").value=P.km;$("p_ob").value=P.ob;$("p_min").value=P.min;$("p_round").value=P.round;$("p_vat").value=P.vat;$("p_waitFree").checked=P.waitFree;
-  $("n_prefix").value=S.prefix;$("n_start").value=S.start;
+  $("n_prefix").value=S.prefix;$("n_start").value=S.start;$("kv_def").checked=S.kvDefault!==false;
   $("pin_on").checked=S.pin.on;$("pin_code").value=S.pin.code;$("pin_backup").value=S.pin.backup;
   renderLogoPrev();renderCranes();
 }
@@ -732,6 +748,7 @@ $("btnSaveSettings").onclick=()=>{
   S.prices={hour:+$("p_hour").value||0,hourT:+$("p_hourT").value||0,start:+$("p_start").value||0,km:+$("p_km").value||0,ob:+$("p_ob").value||0,min:+$("p_min").value||0,round:+$("p_round").value||0.5,vat:+$("p_vat").value||0,waitFree:$("p_waitFree").checked};
   S.prefix=$("n_prefix").value.trim();S.start=Math.max(1,+$("n_start").value||1);
   S.pin={on:$("pin_on").checked,code,backup:$("pin_backup").value.trim()};
+  S.kvDefault=$("kv_def").checked;if(!editingId&&cur&&!cur.sig&&cur.noAuto){cur.kv=S.kvDefault;setKv(cur.kv);saveDraft()}
   saveS();applyBrand();refreshAuto();update();
   toast("Inställningarna sparade · nästa nr "+S.prefix+nextNo());
 };
