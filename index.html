@@ -257,13 +257,13 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
       </div>
       <label class="f">Egen text om uppdraget<input id="f_jobtext" placeholder="Valfritt, t.ex. Flytt av container åt kommunen"></label>
       <div class="f" style="display:grid;gap:5px;font-size:.8rem;font-weight:600;color:var(--muted)">Debiteras som
-        <div class="seg form" id="billSeg"><button data-b="crane">Kranbil</button><button data-b="trailer">Med släp</button><button data-b="driver">Bara förare</button></div>
+        <div class="seg form" id="billSeg"><button data-b="crane">Kranbil</button><button data-b="trailer">Med släp</button><button data-b="driver">Arbetstid</button></div>
       </div>
       <div class="g2">
         <label class="f">Hämtplats<input id="f_from" placeholder="Adress"></label>
         <label class="f">Lyftplats / leverans<input id="f_to" placeholder="Adress"></label>
         <label class="f" id="craneField">Kranbil<select id="f_crane"></select></label>
-        <label class="f">Förare<input id="f_driver"></label>
+        <label class="f"><span id="driverLbl">Förare</span><input id="f_driver"></label>
       </div>
     </section>
 
@@ -405,7 +405,7 @@ canvas.sig{width:100%;height:150px;background:var(--field);border:1px dashed var
       <div class="grid">
         <label class="f">Timpris kranbil<input type="number" id="p_hour"></label>
         <label class="f">Timpris med släp<input type="number" id="p_hourT"></label>
-        <label class="f">Timpris bara förare<input type="number" id="p_hourD"></label>
+        <label class="f">Timpris arbetstid (utan fordon)<input type="number" id="p_hourD"></label>
         <label class="f">Framkörning, fast<input type="number" id="p_start"></label>
         <label class="f">Kr per km<input type="number" id="p_km" step="0.5"></label>
         <label class="f">OB-tillägg, %<input type="number" id="p_ob"></label>
@@ -543,7 +543,7 @@ function calc(n,P=S.prices){
   let h=raw/60;if(h>0){h=Math.ceil(h/P.round-1e-9)*P.round;h=Math.max(h,+P.min||0)}
   const mode=billOf(n),drv=mode==="driver",G=drv?"Arbete":"Kranbil";
   const rate=drv?(+P.hourD||0):mode==="trailer"?P.hourT:P.hour,lines=[];
-  if(h>0)lines.push({g:G,txt:drv?"Förare, arbetstid (utan bil)":"Kranbil"+(mode==="trailer"?" med släp":"")+" inkl. förare",qty:h,unit:"tim",price:rate});
+  if(h>0)lines.push({g:G,txt:drv?"Arbetstid":"Kranbil"+(mode==="trailer"?" med släp":"")+" inkl. förare",qty:h,unit:"tim",price:rate});
   if(h>0&&n.ob&&P.ob)lines.push({g:G,txt:"OB-tillägg "+P.ob+" %",qty:h,unit:"tim",price:rate*P.ob/100});
   if(!drv&&P.start&&(h>0||n.km>0))lines.push({g:G,txt:"Framkörning",qty:1,unit:"st",price:+P.start});
   if(+n.km>0)lines.push({g:G,txt:"Körsträcka",qty:+n.km,unit:"km",price:+P.km});
@@ -606,7 +606,7 @@ $("v-ny").addEventListener("input",e=>{if(e.target.closest(".editbox"))return;up
 $("f_date").addEventListener("input",()=>{cur.dateAuto=false});
 $("f_no").addEventListener("input",()=>{cur.noAuto=false;saveDraft()});
 $("f_ob").addEventListener("click",e=>{cur.ob=!cur.ob;e.currentTarget.setAttribute("aria-pressed",cur.ob);update()});
-function setBill(){$("billSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.b===cur.bill));$("craneField").hidden=cur.bill==="driver";cur.trailer=cur.bill==="trailer"}
+function setBill(){$("billSeg").querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.b===cur.bill));$("craneField").hidden=cur.bill==="driver";$("driverLbl").textContent=cur.bill==="driver"?"Utfört av":"Förare";cur.trailer=cur.bill==="trailer"}
 $("billSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;cur.bill=b.dataset.b;setBill();update()};
 document.querySelectorAll("[data-now]").forEach(b=>b.onclick=()=>{const d=new Date();$(b.dataset.now).value=pad(d.getHours())+":"+pad(d.getMinutes());update()});
 /* new day: refresh date and number on an untouched new note */
@@ -699,7 +699,7 @@ function docHTML(n){
   <div><h1>Följesedel</h1><div class="kv"><span>Nummer</span><b>${esc(n.no||"")}</b><span>Datum</span><b>${esc(n.date)}</b>${cr.name?`<span>Fordon</span><b>${esc(cr.name)}</b>`:""}${cr.reg?`<span>Reg.nr</span><b>${esc(cr.reg)}</b>`:""}</div></div></div>
   <div class="cols">
    <div><h3>Kund</h3>${esc(n.cust)||"–"}${n.orgnr?"<br>Org.nr "+esc(n.orgnr):""}${n.contact?"<br>"+esc(n.contact):""}${n.phone?"<br>Tel "+esc(n.phone):""}${n.ref?"<br>Er ref: "+esc(n.ref):""}</div>
-   <div><h3>Uppdrag</h3>${esc(jobsStr(n))||"–"}${billOf(n)==="driver"?"<br>Avser endast förare, utan bil":""}${n.from?"<br>Från: "+esc(n.from):""}${n.to?"<br>Till: "+esc(n.to):""}${n.driver?"<br>Förare: "+esc(n.driver):""}</div>
+   <div><h3>Uppdrag</h3>${esc(jobsStr(n))||"–"}${billOf(n)==="driver"?"<br>Avser arbetstid utan fordon":""}${n.from?"<br>Från: "+esc(n.from):""}${n.to?"<br>Till: "+esc(n.to):""}${n.driver?"<br>"+(billOf(n)==="driver"?"Utfört av: ":"Förare: ")+esc(n.driver):""}</div>
    <div><h3>Tider</h3><span class="mono">Från depå ${v(n.t.start)}<br>Ankomst ${v(n.t.arrive)} · Klart ${v(n.t.done)}<br>Åter depå ${v(n.t.back)}</span>${n.t.brk?"<br>Rast "+n.t.brk+" min":""}${n.t.wait?"<br>Väntetid "+n.t.wait+" min":""}${n.km?"<br>Körsträcka "+n.km+" km":""}</div>
    ${L.goods||L.weight?`<div><h3>Lyft</h3>${esc(L.goods)||""}<br><span class="mono">${L.weight?"Vikt "+esc(L.weight)+" kg":""}${L.count?" · "+esc(L.count)+" lyft":""}${L.reach?"<br>Räckvidd "+esc(L.reach)+" m":""}${L.height?" · Höjd "+esc(L.height)+" m":""}</span></div>`:""}
   </div>
@@ -774,10 +774,10 @@ function summaryHTML(list,mode){
   const refs=[...new Set(s.map(n=>n.ref).filter(Boolean))];
   const per=s.length?(s[0].date===s[s.length-1].date?s[0].date:s[0].date+" – "+s[s.length-1].date):"";
   const tot=`<tbody class="tot"><tr><td colspan="4" class="n">Summa exkl. moms</td><td class="n">${kr2(net)}</td></tr><tr><td colspan="4" class="n">Moms ${S.prices.vat} %</td><td class="n">${kr2(vat)}</td></tr><tr class="big"><td colspan="4" class="n">Att fakturera</td><td class="n">${kr2(net+vat)} kr</td></tr></tbody>`;
-  const info=n=>[n.date,jobsStr(n),billOf(n)==="driver"&&"Endast förare",n.to,n.ref&&"Ref: "+n.ref].filter(Boolean).map(esc).join(" · ");
+  const info=n=>[n.date,jobsStr(n),billOf(n)==="driver"&&"Arbetstid utan fordon",n.to,n.ref&&"Ref: "+n.ref].filter(Boolean).map(esc).join(" · ");
   let table;
   if(mode==="sum"){
-    const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td>${esc(n.date)}</td><td>${esc(jobsStr(n))}${billOf(n)==="driver"?"<br><span class='sub'>Endast förare</span>":""}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
+    const rows=s.map(n=>{const c=calc(n);return `<tr><td>${esc(n.no)}</td><td>${esc(n.date)}</td><td>${esc(jobsStr(n))}${billOf(n)==="driver"?"<br><span class='sub'>Arbetstid utan fordon</span>":""}${n.to?"<br><span class='sub'>"+esc(n.to)+"</span>":""}${n.ref?"<br><span class='sub'>Ref: "+esc(n.ref)+"</span>":""}</td><td class="n">${c.hours?kr2(c.hours):"–"}</td><td class="n">${kr2(c.net)}</td></tr>`}).join("");
     table=`<table><thead><tr><th>Följesedel</th><th>Datum</th><th>Uppdrag</th><th class="n">Timmar</th><th class="n">Exkl. moms</th></tr></thead><tbody>${rows}</tbody>${tot}</table>`;
   }else{
     const groups=s.map(n=>{const c=calc(n);
