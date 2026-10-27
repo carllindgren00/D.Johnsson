@@ -488,8 +488,8 @@ const store={
   del(k){try{localStorage.removeItem(k)}catch(e){}}
 };
 const DEF={
-  company:{name:"D. Johanssons Transport AB",orgnr:"",addr:"",phone:"",email:"",bg:"",fskatt:true},
-  wm:{text:"D. Johanssons Transport AB",color:"#3d82c4"},
+  company:{name:"D. Johnssons Transport AB",orgnr:"",addr:"",phone:"",email:"",bg:"",fskatt:true},
+  wm:{text:"D. Johnssons Transport AB",color:"#3d82c4"},
   logo:"",prefix:"",start:1001,
   prices:{hour:1350,hourT:1550,hourD:550,start:650,km:18,ob:50,min:2,round:0.5,vat:25,waitFree:false},
   cranes:[{name:"Scania R · kran",reg:""}],
@@ -503,6 +503,7 @@ let S=Object.assign({},DEF,store.get("kb_settings",{}));
 if(!S.company||S.company.name==="Kranbil & Lyft AB")S.company=Object.assign({},DEF.company);
 S.company=Object.assign({},DEF.company,S.company);S.prices=Object.assign({},DEF.prices,S.prices);S.pin=(S.pin&&S.pin.h)?{h:S.pin.h}:{h:""};
 S.wm=Object.assign({},DEF.wm,S.wm);
+["company","wm"].forEach(k=>["name","text"].forEach(f=>{if(S[k]&&typeof S[k][f]==="string")S[k][f]=S[k][f].replace("Johanssons","Johnssons")}));
 if(S.prefix==="KB-")S.prefix="";
 if(!S.start)S.start=S.next||DEF.start;delete S.next;
 if(!S.tools){S.tools=DEF.tools.slice();S.extras=(S.extras||DEF.extras).filter(x=>!["Pallgafflar","Vakuumlyft","Lyftok / extra stroppar"].includes(x.name));if(!S.extras.find(x=>x.name==="Extra personal"))S.extras.splice(1,0,{name:"Extra personal",price:550,unit:"tim"})}
